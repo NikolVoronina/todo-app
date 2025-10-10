@@ -29,7 +29,7 @@ export default function Home() {
     const [priority, setPriority] = useState<Priority>("medium");
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
-    const [color, setColor] = useState("#60a5fa");
+    const [color, setColor] = useState("#ff8fa3");
     const [category, setCategory] = useState<string>("inbox");
 
     useEffect(() => {
@@ -44,7 +44,7 @@ export default function Home() {
                     priority: (t.priority as Priority) ?? "medium",
                     date: t.date ?? undefined,
                     time: t.time ?? undefined,
-                    color: t.color ?? "#60a5fa",
+                    color: t.color ?? "#ff8fa3",
                     category: t.category ?? "inbox",
                 }));
                 setTodos(normalized);
@@ -69,7 +69,7 @@ export default function Home() {
             priority,
             date: date || undefined,
             time: time || undefined,
-            color: color || "#60a5fa",
+            color: color || "#ff8fa3",
             category,
         };
         setTodos((prev) => [newTodo, ...prev]);
@@ -77,7 +77,7 @@ export default function Home() {
         setPriority("medium");
         setDate("");
         setTime("");
-        setColor("#60a5fa");
+        setColor("#ff8fa3");
         setCategory("inbox");
     };
 
@@ -103,40 +103,56 @@ export default function Home() {
         return map;
     };
 
-    const priorityColor = (p: Priority) =>
-        p === "high" ? "bg-red-500" : p === "medium" ? "bg-yellow-400" : "bg-emerald-500";
+    const priorityStyle = (p: Priority) =>
+        p === "high" ? "bg-pink-500" : p === "medium" ? "bg-rose-300 text-rose-900" : "bg-emerald-400 text-emerald-900";
 
     const grouped = groupByCategory(todos);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-start justify-center py-12 px-4">
-            <div className="w-full max-w-4xl">
-                <header className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">My Tasks</h1>
-                        <p className="text-sm text-slate-500 mt-1">Управляйте задачами: приоритет, дата, время, цвет и категории</p>
+        <div style={{ fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }} className="min-h-screen bg-gradient-to-b from-pink-50 to-emerald-50 flex items-start justify-center py-12 px-4">
+            {/* load font */}
+            <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');`}</style>
+
+            <div className="w-full max-w-6xl">
+                <header className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-emerald-300 flex items-center justify-center shadow-md">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white">
+                                <path d="M4 7h16M4 12h10M4 17h16" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 className="text-4xl font-bold text-slate-900">Tasks & Planner</h1>
+                            <p className="text-sm text-slate-600 mt-0.5">Превосходный дизайн: розовые и зелёные акценты, иконки и колонки для разделов</p>
+                        </div>
                     </div>
-                    <div className="text-sm text-slate-600">{todos.length} tasks</div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="text-sm text-slate-700">{todos.length} total</div>
+                        <button onClick={clearCompleted} className="px-3 py-2 text-sm rounded-md bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100">
+                            Clear completed
+                        </button>
+                    </div>
                 </header>
 
-                <main className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-6">
-                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end mb-6">
-                        <div className="md:col-span-3">
+                <main className="bg-white/80 backdrop-blur rounded-2xl shadow-xl p-6">
+                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end mb-6">
+                        <div className="md:col-span-4">
                             <label className="block text-xs font-medium text-slate-600 mb-1">Task</label>
                             <input
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
-                                placeholder="What do you want to do?"
-                                className="w-full px-4 py-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 text-slate-800"
+                                placeholder="Например: подготовить отчёт"
+                                className="w-full px-4 py-3 border border-pink-100 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-200 text-slate-800"
                             />
                         </div>
 
-                        <div>
+                        <div className="md:col-span-1">
                             <label className="block text-xs font-medium text-slate-600 mb-1">Priority</label>
                             <select
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value as Priority)}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-800 focus:ring-2 focus:ring-sky-200"
+                                className="w-full px-3 py-2 border border-pink-100 rounded-lg bg-white text-slate-800 focus:ring-2 focus:ring-emerald-100"
                             >
                                 <option value="high">High</option>
                                 <option value="medium">Medium</option>
@@ -144,12 +160,12 @@ export default function Home() {
                             </select>
                         </div>
 
-                        <div>
+                        <div className="md:col-span-1">
                             <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
                             <select
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-800 focus:ring-2 focus:ring-sky-200"
+                                className="w-full px-3 py-2 border border-pink-100 rounded-lg bg-white text-slate-800 focus:ring-2 focus:ring-emerald-100"
                             >
                                 {CATEGORIES.map((c) => (
                                     <option key={c.id} value={c.id}>
@@ -160,27 +176,37 @@ export default function Home() {
                         </div>
 
                         <div className="md:col-span-2 flex gap-3">
-                            <div className="flex-1">
+                            <div className="flex-1 relative">
                                 <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
-                                <input
-                                    type="date"
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-200"
-                                />
+                                <div className="relative">
+                                    <svg className="absolute left-3 top-3 w-5 h-5 text-pink-400" viewBox="0 0 24 24" fill="none">
+                                        <path d="M7 11h10M7 16h6M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
+                                    </svg>
+                                    <input
+                                        type="date"
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        className="w-full pl-10 pr-3 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-pink-200"
+                                    />
+                                </div>
+                                <div className="mt-1 text-xs text-slate-500">Календарь встроенный (выберите дату)</div>
                             </div>
+
                             <div className="w-36">
                                 <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
                                 <input
                                     type="time"
+                                    step={1800}
                                     value={time}
                                     onChange={(e) => setTime(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-200"
+                                    className="w-full px-3 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-emerald-100"
                                 />
+                                <div className="mt-1 text-xs text-slate-500">Каждые 30 минут</div>
                             </div>
                         </div>
 
-                        <div className="md:col-span-6 flex items-center gap-3">
+                        <div className="md:col-span-8 flex items-center gap-3">
                             <div className="flex items-center gap-2">
                                 <label className="text-xs font-medium text-slate-600">Color</label>
                                 <input
@@ -199,17 +225,17 @@ export default function Home() {
                                         setPriority("medium");
                                         setDate("");
                                         setTime("");
-                                        setColor("#60a5fa");
+                                        setColor("#ff8fa3");
                                         setCategory("inbox");
                                     }}
-                                    className="px-4 py-2 text-sm rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                    className="px-4 py-2 text-sm rounded-md border border-pink-100 text-slate-700 hover:bg-pink-50"
                                 >
                                     Reset
                                 </button>
 
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-sky-600 text-white rounded-md shadow-md hover:bg-sky-700 flex items-center gap-2"
+                                    className="px-4 py-2 bg-gradient-to-br from-pink-500 to-emerald-400 text-white rounded-md shadow-md hover:opacity-95 flex items-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -220,74 +246,52 @@ export default function Home() {
                         </div>
                     </form>
 
-                    <div className="mb-4 flex items-center justify-between">
-                        <div className="text-sm text-slate-600">{todos.filter((t) => !t.done).length} open • {todos.filter((t) => t.done).length} done</div>
-                        <div>
-                            <button onClick={clearCompleted} className="text-sm text-rose-600 hover:underline">
-                                Clear completed
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="space-y-6">
-                        {Array.from(grouped.entries()).map(([catId, items]) => {
-                            if (!items.length) return null;
-                            const cat = CATEGORIES.find((c) => c.id === catId) ?? { label: catId, emoji: "🔖" };
+                    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {CATEGORIES.map((cat) => {
+                            const items = grouped.get(cat.id) ?? [];
                             return (
-                                <section key={catId}>
-                                    <h2 className="text-lg font-semibold mb-3 flex items-center gap-3">
-                                        <span className="text-2xl">{cat.emoji}</span>
-                                        <span className="text-slate-800">{cat.label}</span>
-                                        <span className="ml-2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{items.length}</span>
-                                    </h2>
+                                <div key={cat.id} className="bg-gradient-to-b from-white to-pink-25 rounded-2xl p-4 shadow-md border border-pink-50" style={{ minHeight: 140 }}>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-white/60 flex items-center justify-center shadow-inner" style={{ border: "1px solid rgba(0,0,0,0.03)" }}>
+                                                <div className="text-xl">{cat.emoji}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-semibold text-slate-800">{cat.label}</div>
+                                                <div className="text-xs text-slate-500">{items.length} tasks</div>
+                                            </div>
+                                        </div>
 
-                                    <ul className="grid gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <button className="text-xs px-2 py-1 rounded-md bg-emerald-50 text-emerald-700">New</button>
+                                        </div>
+                                    </div>
+
+                                    <ul className="space-y-3">
+                                        {items.length === 0 && <li className="text-xs text-slate-400">Пусто</li>}
                                         {items.map((todo) => (
-                                            <li
-                                                key={todo.id}
-                                                className="flex items-center justify-between p-4 rounded-xl shadow-sm bg-white"
-                                                style={{ borderLeft: `6px solid ${todo.color ?? "#60a5fa"}` }}
-                                            >
-                                                <label className="flex items-start gap-3 flex-1 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={todo.done}
-                                                        onChange={() => toggleDone(todo.id)}
-                                                        className="mt-1 h-4 w-4 text-sky-600"
-                                                    />
-                                                    <div>
+                                            <li key={todo.id} className="flex items-start gap-3 bg-white rounded-xl p-3 shadow-sm" style={{ borderLeft: `5px solid ${todo.color ?? "#ff8fa3"}` }}>
+                                                <input type="checkbox" checked={todo.done} onChange={() => toggleDone(todo.id)} className="mt-1 h-4 w-4 text-rose-500" />
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3">
                                                         <div className="flex items-center gap-3">
-                                                            <span className={todo.done ? "line-through text-slate-400 text-lg" : "text-slate-900 text-lg font-medium"}>
-                                                                {todo.text}
-                                                            </span>
-                                                            <span className={`px-2 py-0.5 rounded-full text-xs text-white ${priorityColor(todo.priority)}`}>
-                                                                {todo.priority}
-                                                            </span>
+                                                            <div className={todo.done ? "line-through text-slate-400" : "text-slate-900 font-medium"}>{todo.text}</div>
+                                                            <div className={`text-xs px-2 py-0.5 rounded-full text-white ${priorityStyle(todo.priority)}`}>{todo.priority}</div>
                                                         </div>
-                                                        <div className="text-xs text-slate-500 mt-1 flex gap-3 items-center">
-                                                            {todo.date && <span className="flex items-center gap-1">📅 <span>{todo.date}</span></span>}
-                                                            {todo.time && <span className="flex items-center gap-1">⏰ <span>{todo.time}</span></span>}
+                                                        <div className="flex items-center gap-2">
+                                                            {todo.date && <div className="text-xs text-slate-500">📅 {todo.date}</div>}
+                                                            {todo.time && <div className="text-xs text-slate-500">⏰ {todo.time}</div>}
+                                                            <button onClick={() => removeTodo(todo.id)} className="text-xs text-pink-600 hover:underline">Delete</button>
                                                         </div>
                                                     </div>
-                                                </label>
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="text-lg">{CATEGORIES.find((c) => c.id === todo.category)?.emoji}</div>
-                                                    <button
-                                                        onClick={() => removeTodo(todo.id)}
-                                                        className="text-sm text-rose-600 hover:underline"
-                                                        aria-label="Delete task"
-                                                    >
-                                                        Delete
-                                                    </button>
                                                 </div>
                                             </li>
                                         ))}
                                     </ul>
-                                </section>
+                                </div>
                             );
                         })}
-                    </div>
+                    </section>
                 </main>
             </div>
         </div>
