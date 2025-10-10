@@ -380,14 +380,7 @@ export default function Home() {
                                     }}
                                 />
                             </div>
-                            {date ? (
-                                <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
-                                    <span className="text-pink-600">📅</span>
-                                    <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{formatDisplayDate(date)}</span>
-                                </div>
-                            ) : (
-                                <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
-                            )}
+                           
                         </div>
 
                         <div className="md:col-span-2 min-w-0">
@@ -402,14 +395,7 @@ export default function Home() {
                                 }}
                             />
 
-                            {time ? (
-                                <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffeef2,#e8fff0)" }}>
-                                    <span className="text-pink-600">⏰</span>
-                                    <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{time}</span>
-                                </div>
-                            ) : (
-                                <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
-                            )}
+                 
                         </div>
 
                         {/* action row */}
