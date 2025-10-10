@@ -48,7 +48,7 @@ export default function Home() {
             try {
                 const parsed = JSON.parse(raw) as Partial<Todo>[];
                 const normalized = parsed.map((t) => ({
-                    id: t.id ?? Date.now(),
+                    id: t.id ?? (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now()),
                     text: t.text ?? "",
                     done: t.done ?? false,
                     priority: (t.priority as Priority) ?? "medium",
