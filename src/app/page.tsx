@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type Priority = "low" | "medium" | "high";
 type Todo = {
@@ -23,6 +23,10 @@ const CATEGORIES: { id: string; label: string; emoji: string }[] = [
     { id: "other", label: "Other", emoji: "🔖" },
 ];
 
+// shared constants
+const BORDER = "rounded-2xl";
+const CARD_BG = "bg-white/85";
+
 export default function Home() {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [text, setText] = useState("");
@@ -31,6 +35,13 @@ export default function Home() {
     const [time, setTime] = useState("");
     const [color, setColor] = useState("#ff8fa3");
     const [category, setCategory] = useState<string>("inbox");
+    const [darkMode, setDarkMode] = useState<boolean>(() => {
+        try {
+            const raw = localStorage.getItem("darkMode");
+            if (raw !== null) return raw === "1";
+        } catch {}
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    });
 
     useEffect(() => {
         const raw = localStorage.getItem("todos");
@@ -57,6 +68,12 @@ export default function Home() {
     useEffect(() => {
         localStorage.setItem("todos", JSON.stringify(todos));
     }, [todos]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("darkMode", darkMode ? "1" : "0");
+        } catch {}
+    }, [darkMode]);
 
     const addTodo = (e?: React.FormEvent) => {
         e?.preventDefault();
@@ -108,7 +125,7 @@ export default function Home() {
 
     const grouped = groupByCategory(todos);
 
-    // --- new helpers for styled calendar and flexible time input ---
+    // --- helpers for date/time ---
     const formatDisplayDate = (d?: string) => {
         if (!d) return "";
         try {
@@ -133,85 +150,185 @@ export default function Home() {
 
     const timeOptions = generateTimeOptions();
 
-    const validateAndSetTime = (value: string) => {
+    const normalizeTime = (value: string) => {
         const v = value.trim();
-        if (!v) {
-            setTime("");
-            return;
-        }
-        // accept HH:MM or H:MM
-        const m = v.match(/^(\d{1,2}):(\d{2})$/);
-        if (!m) {
-            // try replace comma/dot
-            const alt = v.replace(".", ":").replace(",", ":");
-            const ma = alt.match(/^(\d{1,2}):(\d{2})$/);
-            if (ma) {
-                const hh = Number(ma[1]);
-                const mm = Number(ma[2]);
-                if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
-                    setTime(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
-                    return;
-                }
-            }
-            // invalid -> clear
-            setTime("");
-            return;
-        }
+        if (!v) return "";
+        const alt = v.replace(".", ":").replace(",", ":");
+        const m = alt.match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return "";
         const hh = Number(m[1]);
         const mm = Number(m[2]);
         if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
-            setTime(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
-        } else {
-            setTime("");
+            return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
         }
+        return "";
     };
-    // --- end helpers ---
+
+    // compact interactive time input
+    function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+        const [open, setOpen] = useState(false);
+        const [local, setLocal] = useState(value);
+        const ref = useRef<HTMLDivElement | null>(null);
+
+        useEffect(() => setLocal(value), [value]);
+
+        useEffect(() => {
+            const onDoc = (e: MouseEvent) => {
+                if (!ref.current) return;
+                if (!(e.target instanceof Node)) return;
+                if (!ref.current.contains(e.target)) setOpen(false);
+            };
+            document.addEventListener("mousedown", onDoc);
+            return () => document.removeEventListener("mousedown", onDoc);
+        }, []);
+
+        return (
+            <div ref={ref} className="relative">
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="HH:MM"
+                    value={local}
+                    onChange={(e) => setLocal(e.target.value)}
+                    onFocus={() => setOpen(true)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            const n = normalizeTime(local);
+                            if (n) {
+                                onChange(n);
+                                setLocal(n);
+                            }
+                            setOpen(false);
+                        } else if (e.key === "Escape") {
+                            setLocal(value);
+                            setOpen(false);
+                        }
+                    }}
+                    onBlur={() => {
+                        // delay to allow click selection
+                        setTimeout(() => {
+                            const n = normalizeTime(local);
+                            if (n) {
+                                onChange(n);
+                                setLocal(n);
+                            } else {
+                                // restore previous valid value
+                                setLocal(value);
+                            }
+                            setOpen(false);
+                        }, 120);
+                    }}
+                    className={`w-28 px-3 py-2 border border-pink-100 ${BORDER} focus:outline-none`}
+                    aria-label="Time (HH:MM)"
+                />
+
+                {open && (
+                    <div
+                        className={`absolute top-full mt-2 left-0 z-50 w-44 max-h-44 overflow-auto bg-white border ${BORDER}`}
+                        style={{ boxShadow: "0 8px 24px rgba(15,23,42,0.12)" }}
+                    >
+                        <div className="p-2">
+                            {timeOptions.map((t) => (
+                                <button
+                                    key={t}
+                                    onMouseDown={(ev) => {
+                                        ev.preventDefault();
+                                        onChange(t);
+                                        setLocal(t);
+                                        setOpen(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-pink-50 rounded-md"
+                                >
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // theme helpers
+    const rootBg = darkMode ? "bg-gradient-to-b from-[#111317] to-[#083f2e]" : "bg-gradient-to-b from-pink-50 to-emerald-50";
+    const mainBgStyle = darkMode
+        ? { background: "linear-gradient(180deg, rgba(8,10,12,0.82), rgba(6,20,16,0.82))", color: "#e6f6ef" }
+        : undefined;
+    const cardBg = darkMode ? { background: "linear-gradient(180deg, #0b1220, #07221a)" } : undefined;
+    const textColor = darkMode ? "text-slate-200" : "text-slate-900";
 
     return (
-        <div style={{ fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }} className="min-h-screen bg-gradient-to-b from-pink-50 to-emerald-50 flex items-start justify-center py-12 px-4">
-            {/* load font */}
+        <div
+            style={{ fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}
+            className={`min-h-screen flex items-start justify-center py-12 px-4 ${rootBg}`}
+        >
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');`}</style>
 
             <div className="w-full max-w-6xl">
                 <header className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-emerald-300 flex items-center justify-center shadow-md">
+                        <div className={`w-12 h-12 ${BORDER} bg-gradient-to-br from-pink-400 to-emerald-300 flex items-center justify-center shadow-md`}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white">
                                 <path d="M4 7h16M4 12h10M4 17h16" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </div>
                         <div>
-                            <h1 className="text-4xl font-bold text-slate-900">Tasks & Planner</h1>
-                            
+                            <h1 className={`text-4xl font-bold ${textColor}`}>Tasks & Planner</h1>
+                            <p className={`text-sm mt-0.5 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Розово‑зелёная тема, аккуратные карточки и единый радиус</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="text-sm text-slate-700">{todos.length} total</div>
-                        <button onClick={clearCompleted} className="px-3 py-2 text-sm rounded-md bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100">
+                        <div className={`text-sm ${darkMode ? "text-slate-300" : "text-slate-700"}`}>{todos.length} total</div>
+
+                        <button
+                            onClick={() => setDarkMode((s) => !s)}
+                            className={`px-3 py-2 text-sm ${BORDER}`}
+                            style={{
+                                background: darkMode ? "#0f1724" : "#fff",
+                                border: darkMode ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(0,0,0,0.04)",
+                                color: darkMode ? "#fff" : "#111827",
+                            }}
+                            title="Toggle dark mode"
+                        >
+                            {darkMode ? "🌙 Dark" : "☀️ Light"}
+                        </button>
+
+                        <button
+                            onClick={clearCompleted}
+                            className={`${BORDER} px-3 py-2 text-sm`}
+                            style={{
+                                background: darkMode ? "rgba(255,20,100,0.06)" : "#fff3f5",
+                                border: "1px solid rgba(255,182,193,0.25)",
+                                color: "#ec4899",
+                            }}
+                        >
                             Clear completed
                         </button>
                     </div>
                 </header>
 
-                <main className="bg-white/80 backdrop-blur rounded-2xl shadow-xl p-6">
+                <main
+                    className={`${BORDER} shadow-xl p-6`}
+                    style={{ ...(mainBgStyle ?? {}), ...(darkMode ? { border: "1px solid rgba(255,255,255,0.04)" } : {}) }}
+                >
                     <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end mb-6">
                         <div className="md:col-span-4">
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Task</label>
+                            <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Task</label>
                             <input
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
-                                placeholder="Skriv her noe...."
-                                className="w-full px-4 py-3 border border-pink-100 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-200 text-slate-800"
+                                placeholder="Write your task"
+                                className={`w-full px-4 py-3 border border-transparent ${BORDER} shadow-sm focus:outline-none focus:ring-2 ${darkMode ? "focus:ring-emerald-200" : "focus:ring-pink-200"} ${darkMode ? "bg-[#061014] text-slate-100" : "bg-white text-slate-800"}`}
                             />
                         </div>
 
                         <div className="md:col-span-1">
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Priority</label>
+                            <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Priority</label>
                             <select
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value as Priority)}
-                                className="w-full px-3 py-2 border border-pink-100 rounded-lg bg-white text-slate-800 focus:ring-2 focus:ring-emerald-100"
+                                className={`w-full px-3 py-2 border border-transparent ${BORDER} ${darkMode ? "bg-[#071318] text-slate-100" : "bg-white text-slate-800"}`}
                             >
                                 <option value="high">High</option>
                                 <option value="medium">Medium</option>
@@ -220,11 +337,11 @@ export default function Home() {
                         </div>
 
                         <div className="md:col-span-1">
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
+                            <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Category</label>
                             <select
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
-                                className="w-full px-3 py-2 border border-pink-100 rounded-lg bg-white text-slate-800 focus:ring-2 focus:ring-emerald-100"
+                                className={`w-full px-3 py-2 border border-transparent ${BORDER} ${darkMode ? "bg-[#071318] text-slate-100" : "bg-white text-slate-800"}`}
                             >
                                 {CATEGORIES.map((c) => (
                                     <option key={c.id} value={c.id}>
@@ -236,70 +353,69 @@ export default function Home() {
 
                         <div className="md:col-span-2 flex gap-3">
                             <div className="flex-1 relative">
-                                <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Date</label>
                                 <div className="relative">
                                     <svg className="absolute left-3 top-3 w-5 h-5 text-pink-400" viewBox="0 0 24 24" fill="none">
-                                        <path d="M7 11h10M7 16h6M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M7 11h10M7 16h6M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                                         <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
                                     </svg>
 
-                                    {/* styled native date input + formatted badge */}
                                     <input
                                         type="date"
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
-                                        className="w-full pl-10 pr-3 py-2 border-2 border-transparent rounded-lg focus:outline-none"
+                                        className={`w-full pl-10 pr-3 py-2 border-2 border-transparent ${BORDER} focus:outline-none`}
                                         style={{
-                                            background: "linear-gradient(90deg, rgba(255,142,163,0.06), rgba(167,243,208,0.04))",
+                                            background: darkMode ? "linear-gradient(90deg, rgba(255,142,163,0.03), rgba(74,222,128,0.02))" : "linear-gradient(90deg, rgba(255,142,163,0.06), rgba(167,243,208,0.04))",
                                             borderImageSlice: 1,
                                             borderImageSource: "linear-gradient(90deg, #ff8fa3, #4ade80)",
+                                            color: darkMode ? "#e6f6ef" : undefined,
                                         }}
                                     />
                                 </div>
 
-                                {/* formatted pill */}
                                 {date ? (
-                                    <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium" style={{ background: "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
+                                    <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
                                         <span className="text-pink-600">📅</span>
-                                        <span className="text-slate-700">{formatDisplayDate(date)}</span>
+                                        <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{formatDisplayDate(date)}</span>
                                     </div>
                                 ) : (
-                                    <div className="mt-1 text-xs text-slate-500">Valg dag</div>
+                                    <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
                                 )}
                             </div>
 
-                            <div className="w-36">
-                                <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
+                            <div className="w-28">
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Time</label>
 
-                                {/* input type text with datalist (allows typing + selection) */}
-                                <input
-                                    type="text"
-                                    list="times"
+                                <TimeInput
                                     value={time}
-                                    onChange={(e) => setTime(e.target.value)}
-                                    onBlur={(e) => validateAndSetTime(e.target.value)}
-                                    placeholder="HH:MM"
-                                    className="w-full px-3 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-emerald-100"
-                                    aria-label="Time (HH:MM)"
+                                    onChange={(v) => {
+                                        const n = normalizeTime(v);
+                                        if (n) setTime(n);
+                                        else setTime(v);
+                                    }}
                                 />
-                                <datalist id="times">
-                                    {timeOptions.map((t) => (
-                                        <option key={t} value={t} />
-                                    ))}
-                                </datalist>
 
-                               
+                                {time ? (
+                                    <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffeef2,#e8fff0)" }}>
+                                        <span className="text-pink-600">⏰</span>
+                                        <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{time}</span>
+                                    </div>
+                                ) : (
+                                    <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Введите время вручную или выберите</div>
+                                )}
                             </div>
                         </div>
 
                         <div className="md:col-span-8 flex items-center gap-3">
                             <div className="flex items-center gap-2">
-                                <label className="text-xs font-medium text-slate-600">Color</label>
+                                <label className={`text-xs font-medium ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Color</label>
                                 <input
                                     type="color"
                                     value={color}
                                     onChange={(e) => setColor(e.target.value)}
-                                    className="w-10 h-10 p-0 border rounded-md"
+                                    className={`w-10 h-10 p-0 border ${BORDER}`}
+                                    aria-label="Task color"
                                 />
                             </div>
 
@@ -314,14 +430,20 @@ export default function Home() {
                                         setColor("#ff8fa3");
                                         setCategory("inbox");
                                     }}
-                                    className="px-4 py-2 text-sm rounded-md border border-pink-100 text-slate-700 hover:bg-pink-50"
+                                    className={`px-4 py-2 text-sm ${BORDER}`}
+                                    style={{
+                                        border: "1px solid rgba(0,0,0,0.04)",
+                                        background: darkMode ? "#071318" : "transparent",
+                                        color: darkMode ? "#e6f6ef" : "#111827",
+                                    }}
                                 >
                                     Reset
                                 </button>
 
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-gradient-to-br from-pink-500 to-emerald-400 text-white rounded-md shadow-md hover:opacity-95 flex items-center gap-2"
+                                    className={`px-4 py-2 text-white ${BORDER} shadow-md flex items-center gap-2`}
+                                    style={{ background: "linear-gradient(90deg,#ff3b7a,#34d399)" }}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -336,37 +458,61 @@ export default function Home() {
                         {CATEGORIES.map((cat) => {
                             const items = grouped.get(cat.id) ?? [];
                             return (
-                                <div key={cat.id} className="bg-gradient-to-b from-white to-pink-25 rounded-2xl p-4 shadow-md border border-pink-50" style={{ minHeight: 140 }}>
+                                <div
+                                    key={cat.id}
+                                    className={`${BORDER} p-4 shadow-md border`}
+                                    style={{
+                                        minHeight: 140,
+                                        background: darkMode ? "linear-gradient(180deg,#071318,#051816)" : "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,245,247,0.9))",
+                                        borderColor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(255,182,193,0.12)",
+                                    }}
+                                >
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-white/60 flex items-center justify-center shadow-inner" style={{ border: "1px solid rgba(0,0,0,0.03)" }}>
+                                            <div className={`${BORDER} w-10 h-10 bg-white/6 flex items-center justify-center shadow-inner`} style={{ border: "1px solid rgba(255,255,255,0.03)" }}>
                                                 <div className="text-xl">{cat.emoji}</div>
                                             </div>
                                             <div>
-                                                <div className="text-sm font-semibold text-slate-800">{cat.label}</div>
-                                                <div className="text-xs text-slate-500">{items.length} tasks</div>
+                                                <div className={`text-sm font-semibold ${darkMode ? "text-slate-100" : "text-slate-800"}`}>{cat.label}</div>
+                                                <div className={`text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{items.length} tasks</div>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            <button className="text-xs px-2 py-1 rounded-md bg-emerald-50 text-emerald-700">New</button>
+                                            <button
+                                                className={`text-xs px-2 py-1 ${BORDER}`}
+                                                style={{
+                                                    background: darkMode ? "#052b1f" : "#ecfdf5",
+                                                    color: darkMode ? "#5eead4" : "#065f46",
+                                                }}
+                                            >
+                                                New
+                                            </button>
                                         </div>
                                     </div>
 
                                     <ul className="space-y-3">
-                                        {items.length === 0 && <li className="text-xs text-slate-400">Пусто</li>}
+                                        {items.length === 0 && <li className={`text-xs ${darkMode ? "text-slate-400" : "text-slate-400"}`}>Empty</li>}
                                         {items.map((todo) => (
-                                            <li key={todo.id} className="flex items-start gap-3 bg-white rounded-xl p-3 shadow-sm" style={{ borderLeft: `5px solid ${todo.color ?? "#ff8fa3"}` }}>
-                                                <input type="checkbox" checked={todo.done} onChange={() => toggleDone(todo.id)} className="mt-1 h-4 w-4 text-rose-500" />
+                                            <li
+                                                key={todo.id}
+                                                className={`${BORDER} flex items-start gap-3 p-3`}
+                                                style={{
+                                                    borderLeft: `5px solid ${todo.color ?? "#ff8fa3"}`,
+                                                    background: darkMode ? "#041316" : "#fff",
+                                                    boxShadow: darkMode ? "0 2px 8px rgba(0,0,0,0.45)" : "0 1px 6px rgba(15,23,42,0.06)",
+                                                }}
+                                            >
+                                                <input type="checkbox" checked={todo.done} onChange={() => toggleDone(todo.id)} className="mt-1 h-4 w-4" />
                                                 <div className="flex-1">
                                                     <div className="flex items-center justify-between gap-3">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={todo.done ? "line-through text-slate-400" : "text-slate-900 font-medium"}>{todo.text}</div>
+                                                            <div className={todo.done ? "line-through text-slate-400" : `${darkMode ? "text-slate-100" : "text-slate-900"} font-medium`}>{todo.text}</div>
                                                             <div className={`text-xs px-2 py-0.5 rounded-full text-white ${priorityStyle(todo.priority)}`}>{todo.priority}</div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            {todo.date && <div className="text-xs text-slate-500">📅 {formatDisplayDate(todo.date)}</div>}
-                                                            {todo.time && <div className="text-xs text-slate-500">⏰ {todo.time}</div>}
+                                                            {todo.date && <div className={`text-xs ${darkMode ? "text-slate-300" : "text-slate-500"}`}>📅 {formatDisplayDate(todo.date)}</div>}
+                                                            {todo.time && <div className={`text-xs ${darkMode ? "text-slate-300" : "text-slate-500"}`}>⏰ {todo.time}</div>}
                                                             <button onClick={() => removeTodo(todo.id)} className="text-xs text-pink-600 hover:underline">Delete</button>
                                                         </div>
                                                     </div>
@@ -378,6 +524,10 @@ export default function Home() {
                             );
                         })}
                     </section>
+
+                    <footer className={`mt-8 text-center text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                        Made by Nikunka
+                    </footer>
                 </main>
             </div>
         </div>
