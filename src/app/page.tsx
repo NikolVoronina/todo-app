@@ -25,7 +25,6 @@ const CATEGORIES: { id: string; label: string; emoji: string }[] = [
 
 // shared constants
 const BORDER = "rounded-2xl";
-const CARD_BG = "bg-white/85";
 
 export default function Home() {
     const [todos, setTodos] = useState<Todo[]>([]);
@@ -40,7 +39,7 @@ export default function Home() {
             const raw = localStorage.getItem("darkMode");
             if (raw !== null) return raw === "1";
         } catch {}
-        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     });
 
     useEffect(() => {
@@ -182,8 +181,9 @@ export default function Home() {
             return () => document.removeEventListener("mousedown", onDoc);
         }, []);
 
+        // use darkMode from closure
         return (
-            <div ref={ref} className="relative">
+            <div ref={ref} className="relative min-w-0">
                 <input
                     type="text"
                     inputMode="numeric"
@@ -205,27 +205,30 @@ export default function Home() {
                         }
                     }}
                     onBlur={() => {
-                        // delay to allow click selection
                         setTimeout(() => {
                             const n = normalizeTime(local);
                             if (n) {
                                 onChange(n);
                                 setLocal(n);
                             } else {
-                                // restore previous valid value
                                 setLocal(value);
                             }
                             setOpen(false);
                         }, 120);
                     }}
-                    className={`w-28 px-3 py-2 border border-pink-100 ${BORDER} focus:outline-none`}
+                    className={`w-full md:w-28 px-3 py-2 border border-pink-100 ${BORDER} focus:outline-none`}
                     aria-label="Time (HH:MM)"
                 />
 
                 {open && (
                     <div
-                        className={`absolute top-full mt-2 left-0 z-50 w-44 max-h-44 overflow-auto bg-white border ${BORDER}`}
-                        style={{ boxShadow: "0 8px 24px rgba(15,23,42,0.12)" }}
+                        className={`absolute top-full mt-2 left-0 z-50 w-full md:w-44 max-h-44 overflow-auto border ${BORDER}`}
+                        style={{
+                            boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+                            background: darkMode ? "linear-gradient(180deg,#041316,#071a14)" : "#fff",
+                            color: darkMode ? "#e6f6ef" : undefined,
+                            borderColor: darkMode ? "rgba(255,255,255,0.03)" : undefined,
+                        }}
                     >
                         <div className="p-2">
                             {timeOptions.map((t) => (
@@ -237,7 +240,8 @@ export default function Home() {
                                         setLocal(t);
                                         setOpen(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-pink-50 rounded-md"
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-md ${darkMode ? "hover:bg-[#04221a]" : "hover:bg-pink-50"}`}
+                                    style={{ color: darkMode ? "#e6f6ef" : undefined }}
                                 >
                                     {t}
                                 </button>
@@ -250,11 +254,13 @@ export default function Home() {
     }
 
     // theme helpers
-    const rootBg = darkMode ? "bg-gradient-to-b from-[#111317] to-[#083f2e]" : "bg-gradient-to-b from-pink-50 to-emerald-50";
+    // dark-mode gradient kept; light-mode gradient adjusted to a pink variant (same style)
+    const rootBg = darkMode
+        ? "bg-gradient-to-b from-[#111317] to-[#083f2e]"
+        : "bg-gradient-to-b from-[#fff6fb] via-[#fff0f6] to-[#fffafc]";
     const mainBgStyle = darkMode
         ? { background: "linear-gradient(180deg, rgba(8,10,12,0.82), rgba(6,20,16,0.82))", color: "#e6f6ef" }
         : undefined;
-    const cardBg = darkMode ? { background: "linear-gradient(180deg, #0b1220, #07221a)" } : undefined;
     const textColor = darkMode ? "text-slate-200" : "text-slate-900";
 
     return (
@@ -274,7 +280,7 @@ export default function Home() {
                         </div>
                         <div>
                             <h1 className={`text-4xl font-bold ${textColor}`}>Tasks & Planner</h1>
-                            <p className={`text-sm mt-0.5 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Розово‑зелёная тема, аккуратные карточки и единый радиус</p>
+                            <p className={`text-sm mt-0.5 ${darkMode ? "text-slate-300" : "text-slate-600"}`}></p>
                         </div>
                     </div>
 
@@ -312,8 +318,9 @@ export default function Home() {
                     className={`${BORDER} shadow-xl p-6`}
                     style={{ ...(mainBgStyle ?? {}), ...(darkMode ? { border: "1px solid rgba(255,255,255,0.04)" } : {}) }}
                 >
-                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end mb-6">
-                        <div className="md:col-span-4">
+                    {/* Task row (full width) */}
+                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end mb-4">
+                        <div className="md:col-span-8">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Task</label>
                             <input
                                 value={text}
@@ -323,6 +330,7 @@ export default function Home() {
                             />
                         </div>
 
+                        {/* controls row (under Task) */}
                         <div className="md:col-span-1">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Priority</label>
                             <select
@@ -336,7 +344,7 @@ export default function Home() {
                             </select>
                         </div>
 
-                        <div className="md:col-span-1">
+                        <div className="md:col-span-2">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Category</label>
                             <select
                                 value={category}
@@ -351,70 +359,68 @@ export default function Home() {
                             </select>
                         </div>
 
-                        <div className="md:col-span-2 flex gap-3">
-                            <div className="flex-1 relative">
-                                <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Date</label>
-                                <div className="relative">
-                                    <svg className="absolute left-3 top-3 w-5 h-5 text-pink-400" viewBox="0 0 24 24" fill="none">
-                                        <path d="M7 11h10M7 16h6M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                                        <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
-                                    </svg>
+                        <div className="md:col-span-3 min-w-0">
+                            <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Date</label>
+                            <div className="relative">
+                                <svg className="absolute left-3 top-3 w-5 h-5 text-pink-400" viewBox="0 0 24 24" fill="none">
+                                    <path d="M7 11h10M7 16h6M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                    <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
+                                </svg>
 
-                                    <input
-                                        type="date"
-                                        value={date}
-                                        onChange={(e) => setDate(e.target.value)}
-                                        className={`w-full pl-10 pr-3 py-2 border-2 border-transparent ${BORDER} focus:outline-none`}
-                                        style={{
-                                            background: darkMode ? "linear-gradient(90deg, rgba(255,142,163,0.03), rgba(74,222,128,0.02))" : "linear-gradient(90deg, rgba(255,142,163,0.06), rgba(167,243,208,0.04))",
-                                            borderImageSlice: 1,
-                                            borderImageSource: "linear-gradient(90deg, #ff8fa3, #4ade80)",
-                                            color: darkMode ? "#e6f6ef" : undefined,
-                                        }}
-                                    />
-                                </div>
-
-                                {date ? (
-                                    <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
-                                        <span className="text-pink-600">📅</span>
-                                        <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{formatDisplayDate(date)}</span>
-                                    </div>
-                                ) : (
-                                    <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
-                                )}
-                            </div>
-
-                            <div className="w-28">
-                                <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Time</label>
-
-                                <TimeInput
-                                    value={time}
-                                    onChange={(v) => {
-                                        const n = normalizeTime(v);
-                                        if (n) setTime(n);
-                                        else setTime(v);
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className={`w-full pl-10 pr-3 py-2 border-2 border-transparent ${BORDER} focus:outline-none min-w-0`}
+                                    style={{
+                                        background: darkMode ? "linear-gradient(90deg, rgba(255,142,163,0.03), rgba(74,222,128,0.02))" : "linear-gradient(90deg, rgba(255,142,163,0.06), rgba(167,243,208,0.04))",
+                                        borderImageSlice: 1,
+                                        borderImageSource: "linear-gradient(90deg, #ff8fa3, #4ade80)",
+                                        color: darkMode ? "#e6f6ef" : undefined,
                                     }}
                                 />
-
-                                {time ? (
-                                    <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffeef2,#e8fff0)" }}>
-                                        <span className="text-pink-600">⏰</span>
-                                        <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{time}</span>
-                                    </div>
-                                ) : (
-                                    <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Введите время вручную или выберите</div>
-                                )}
                             </div>
+                            {date ? (
+                                <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
+                                    <span className="text-pink-600">📅</span>
+                                    <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{formatDisplayDate(date)}</span>
+                                </div>
+                            ) : (
+                                <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
+                            )}
                         </div>
 
-                        <div className="md:col-span-8 flex items-center gap-3">
+                        <div className="md:col-span-2 min-w-0">
+                            <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Time</label>
+
+                            <TimeInput
+                                value={time}
+                                onChange={(v) => {
+                                    const n = normalizeTime(v);
+                                    if (n) setTime(n);
+                                    else setTime(v);
+                                }}
+                            />
+
+                            {time ? (
+                                <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffeef2,#e8fff0)" }}>
+                                    <span className="text-pink-600">⏰</span>
+                                    <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{time}</span>
+                                </div>
+                            ) : (
+                                <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
+                            )}
+                        </div>
+
+                        {/* action row */}
+                        <div className="md:col-span-8 flex items-center gap-3 mt-2">
                             <div className="flex items-center gap-2">
                                 <label className={`text-xs font-medium ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Color</label>
                                 <input
                                     type="color"
                                     value={color}
                                     onChange={(e) => setColor(e.target.value)}
-                                    className={`w-10 h-10 p-0 border ${BORDER}`}
+                                    className={`${BORDER}`}
                                     aria-label="Task color"
                                 />
                             </div>
@@ -526,7 +532,7 @@ export default function Home() {
                     </section>
 
                     <footer className={`mt-8 text-center text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-                        Made by Nikunka
+                        Made by Nikol
                     </footer>
                 </main>
             </div>
