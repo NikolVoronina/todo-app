@@ -108,6 +108,65 @@ export default function Home() {
 
     const grouped = groupByCategory(todos);
 
+    // --- new helpers for styled calendar and flexible time input ---
+    const formatDisplayDate = (d?: string) => {
+        if (!d) return "";
+        try {
+            const dt = new Date(d + "T00:00");
+            return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+        } catch {
+            return d;
+        }
+    };
+
+    const generateTimeOptions = () => {
+        const list: string[] = [];
+        for (let h = 0; h < 24; h++) {
+            for (let m = 0; m < 60; m += 30) {
+                const hh = String(h).padStart(2, "0");
+                const mm = String(m).padStart(2, "0");
+                list.push(`${hh}:${mm}`);
+            }
+        }
+        return list;
+    };
+
+    const timeOptions = generateTimeOptions();
+
+    const validateAndSetTime = (value: string) => {
+        const v = value.trim();
+        if (!v) {
+            setTime("");
+            return;
+        }
+        // accept HH:MM or H:MM
+        const m = v.match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) {
+            // try replace comma/dot
+            const alt = v.replace(".", ":").replace(",", ":");
+            const ma = alt.match(/^(\d{1,2}):(\d{2})$/);
+            if (ma) {
+                const hh = Number(ma[1]);
+                const mm = Number(ma[2]);
+                if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
+                    setTime(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
+                    return;
+                }
+            }
+            // invalid -> clear
+            setTime("");
+            return;
+        }
+        const hh = Number(m[1]);
+        const mm = Number(m[2]);
+        if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
+            setTime(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
+        } else {
+            setTime("");
+        }
+    };
+    // --- end helpers ---
+
     return (
         <div style={{ fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }} className="min-h-screen bg-gradient-to-b from-pink-50 to-emerald-50 flex items-start justify-center py-12 px-4">
             {/* load font */}
@@ -123,7 +182,7 @@ export default function Home() {
                         </div>
                         <div>
                             <h1 className="text-4xl font-bold text-slate-900">Tasks & Planner</h1>
-                            <p className="text-sm text-slate-600 mt-0.5">Превосходный дизайн: розовые и зелёные акценты, иконки и колонки для разделов</p>
+                            
                         </div>
                     </div>
 
@@ -142,7 +201,7 @@ export default function Home() {
                             <input
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
-                                placeholder="Например: подготовить отчёт"
+                                placeholder="Skriv her noe...."
                                 className="w-full px-4 py-3 border border-pink-100 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-200 text-slate-800"
                             />
                         </div>
@@ -183,26 +242,53 @@ export default function Home() {
                                         <path d="M7 11h10M7 16h6M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                                         <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
                                     </svg>
+
+                                    {/* styled native date input + formatted badge */}
                                     <input
                                         type="date"
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
-                                        className="w-full pl-10 pr-3 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-pink-200"
+                                        className="w-full pl-10 pr-3 py-2 border-2 border-transparent rounded-lg focus:outline-none"
+                                        style={{
+                                            background: "linear-gradient(90deg, rgba(255,142,163,0.06), rgba(167,243,208,0.04))",
+                                            borderImageSlice: 1,
+                                            borderImageSource: "linear-gradient(90deg, #ff8fa3, #4ade80)",
+                                        }}
                                     />
                                 </div>
-                                <div className="mt-1 text-xs text-slate-500">Календарь встроенный (выберите дату)</div>
+
+                                {/* formatted pill */}
+                                {date ? (
+                                    <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium" style={{ background: "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
+                                        <span className="text-pink-600">📅</span>
+                                        <span className="text-slate-700">{formatDisplayDate(date)}</span>
+                                    </div>
+                                ) : (
+                                    <div className="mt-1 text-xs text-slate-500">Valg dag</div>
+                                )}
                             </div>
 
                             <div className="w-36">
                                 <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
+
+                                {/* input type text with datalist (allows typing + selection) */}
                                 <input
-                                    type="time"
-                                    step={1800}
+                                    type="text"
+                                    list="times"
                                     value={time}
                                     onChange={(e) => setTime(e.target.value)}
+                                    onBlur={(e) => validateAndSetTime(e.target.value)}
+                                    placeholder="HH:MM"
                                     className="w-full px-3 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-emerald-100"
+                                    aria-label="Time (HH:MM)"
                                 />
-                                <div className="mt-1 text-xs text-slate-500">Каждые 30 минут</div>
+                                <datalist id="times">
+                                    {timeOptions.map((t) => (
+                                        <option key={t} value={t} />
+                                    ))}
+                                </datalist>
+
+                               
                             </div>
                         </div>
 
@@ -279,7 +365,7 @@ export default function Home() {
                                                             <div className={`text-xs px-2 py-0.5 rounded-full text-white ${priorityStyle(todo.priority)}`}>{todo.priority}</div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            {todo.date && <div className="text-xs text-slate-500">📅 {todo.date}</div>}
+                                                            {todo.date && <div className="text-xs text-slate-500">📅 {formatDisplayDate(todo.date)}</div>}
                                                             {todo.time && <div className="text-xs text-slate-500">⏰ {todo.time}</div>}
                                                             <button onClick={() => removeTodo(todo.id)} className="text-xs text-pink-600 hover:underline">Delete</button>
                                                         </div>
