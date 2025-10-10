@@ -8,9 +8,9 @@ type Todo = {
     text: string;
     done: boolean;
     priority: Priority;
-    date?: string; // yyyy-mm-dd
-    time?: string; // HH:MM
-    color?: string; // hex
+    date?: string;
+    time?: string;
+    color?: string;
     category: string;
 };
 
@@ -23,7 +23,6 @@ const CATEGORIES: { id: string; label: string; emoji: string }[] = [
     { id: "other", label: "Other", emoji: "🔖" },
 ];
 
-// shared constants
 const BORDER = "rounded-2xl";
 
 export default function Home() {
@@ -42,13 +41,39 @@ export default function Home() {
         return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     });
 
+    // XP / Level system
+    const XP_PER_TASK = 10;
+    const [xp, setXp] = useState<number>(() => {
+        try {
+            const raw = localStorage.getItem("xp");
+            return raw ? Number(raw) : 0;
+        } catch {
+            return 0;
+        }
+    });
+    const getLevel = (xpVal: number) => Math.floor(xpVal / 100) + 1;
+    const level = getLevel(xp);
+    const progressPercent = Math.min(100, Math.floor(xp % 100));
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("xp", String(xp));
+        } catch {}
+    }, [xp]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("darkMode", darkMode ? "1" : "0");
+        } catch {}
+    }, [darkMode]);
+
     useEffect(() => {
         const raw = localStorage.getItem("todos");
         if (raw) {
             try {
                 const parsed = JSON.parse(raw) as Partial<Todo>[];
                 const normalized = parsed.map((t) => ({
-                    id: t.id ?? (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now()),
+                    id: t.id ?? Date.now(),
                     text: t.text ?? "",
                     done: t.done ?? false,
                     priority: (t.priority as Priority) ?? "medium",
@@ -68,12 +93,6 @@ export default function Home() {
         localStorage.setItem("todos", JSON.stringify(todos));
     }, [todos]);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem("darkMode", darkMode ? "1" : "0");
-        } catch {}
-    }, [darkMode]);
-
     const addTodo = (e?: React.FormEvent) => {
         e?.preventDefault();
         const value = text.trim();
@@ -85,7 +104,7 @@ export default function Home() {
             priority,
             date: date || undefined,
             time: time || undefined,
-            color: color || "#ff8fa3",
+            color,
             category,
         };
         setTodos((prev) => [newTodo, ...prev]);
@@ -98,15 +117,33 @@ export default function Home() {
     };
 
     const toggleDone = (id: number) => {
-        setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+        setTodos((prev) =>
+            prev.map((t) => {
+                if (t.id !== id) return t;
+                const willBeDone = !t.done;
+                setXp((cur) => {
+                    const next = willBeDone ? cur + XP_PER_TASK : Math.max(0, cur - XP_PER_TASK);
+                    return next;
+                });
+                return { ...t, done: willBeDone };
+            })
+        );
     };
 
     const removeTodo = (id: number) => {
-        setTodos((prev) => prev.filter((t) => t.id !== id));
+        setTodos((prev) => {
+            const target = prev.find((t) => t.id === id);
+            if (target && target.done) setXp((cur) => Math.max(0, cur - XP_PER_TASK));
+            return prev.filter((t) => t.id !== id);
+        });
     };
 
     const clearCompleted = () => {
-        setTodos((prev) => prev.filter((t) => !t.done));
+        setTodos((prev) => {
+            const removedCount = prev.filter((t) => t.done).length;
+            if (removedCount > 0) setXp((cur) => Math.max(0, cur - removedCount * XP_PER_TASK));
+            return prev.filter((t) => !t.done);
+        });
     };
 
     const groupByCategory = (list: Todo[]) => {
@@ -118,13 +155,8 @@ export default function Home() {
         }
         return map;
     };
-
-    const priorityStyle = (p: Priority) =>
-        p === "high" ? "bg-pink-500" : p === "medium" ? "bg-rose-300 text-rose-900" : "bg-emerald-400 text-emerald-900";
-
     const grouped = groupByCategory(todos);
 
-    // --- helpers for date/time ---
     const formatDisplayDate = (d?: string) => {
         if (!d) return "";
         try {
@@ -146,7 +178,6 @@ export default function Home() {
         }
         return list;
     };
-
     const timeOptions = generateTimeOptions();
 
     const normalizeTime = (value: string) => {
@@ -157,14 +188,11 @@ export default function Home() {
         if (!m) return "";
         const hh = Number(m[1]);
         const mm = Number(m[2]);
-        if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
-            return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-        }
+        if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
         return "";
     };
 
-    // compact interactive time input
-    function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    function TimeInput({ value, onChange, dark }: { value: string; onChange: (v: string) => void; dark: boolean }) {
         const [open, setOpen] = useState(false);
         const [local, setLocal] = useState(value);
         const ref = useRef<HTMLDivElement | null>(null);
@@ -181,7 +209,6 @@ export default function Home() {
             return () => document.removeEventListener("mousedown", onDoc);
         }, []);
 
-        // use darkMode from closure
         return (
             <div ref={ref} className="relative min-w-0">
                 <input
@@ -216,7 +243,7 @@ export default function Home() {
                             setOpen(false);
                         }, 120);
                     }}
-                    className={`w-full md:w-28 px-3 py-2 border border-pink-100 ${BORDER} focus:outline-none`}
+                    className={`w-full md:w-28 px-3 py-2 border border-pink-100 ${BORDER} focus:outline-none ${dark ? "bg-[#061014] text-slate-100" : "bg-white text-slate-800"}`}
                     aria-label="Time (HH:MM)"
                 />
 
@@ -225,9 +252,9 @@ export default function Home() {
                         className={`absolute top-full mt-2 left-0 z-50 w-full md:w-44 max-h-44 overflow-auto border ${BORDER}`}
                         style={{
                             boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-                            background: darkMode ? "linear-gradient(180deg,#041316,#071a14)" : "#fff",
-                            color: darkMode ? "#e6f6ef" : undefined,
-                            borderColor: darkMode ? "rgba(255,255,255,0.03)" : undefined,
+                            background: dark ? "linear-gradient(180deg,#041316,#071a14)" : "#fff",
+                            color: dark ? "#e6f6ef" : undefined,
+                            borderColor: dark ? "rgba(255,255,255,0.03)" : undefined,
                         }}
                     >
                         <div className="p-2">
@@ -240,8 +267,8 @@ export default function Home() {
                                         setLocal(t);
                                         setOpen(false);
                                     }}
-                                    className={`w-full text-left px-3 py-2 text-sm rounded-md ${darkMode ? "hover:bg-[#04221a]" : "hover:bg-pink-50"}`}
-                                    style={{ color: darkMode ? "#e6f6ef" : undefined }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-md ${dark ? "hover:bg-[#04221a]" : "hover:bg-pink-50"}`}
+                                    style={{ color: dark ? "#e6f6ef" : undefined }}
                                 >
                                     {t}
                                 </button>
@@ -253,21 +280,15 @@ export default function Home() {
         );
     }
 
-    // theme helpers
-    // dark-mode gradient kept; light-mode gradient adjusted to a pink variant (same style)
-    const rootBg = darkMode
-        ? "bg-gradient-to-b from-[#111317] to-[#083f2e]"
-        : "bg-gradient-to-b from-[#fff6fb] via-[#fff0f6] to-[#fffafc]";
-    const mainBgStyle = darkMode
-        ? { background: "linear-gradient(180deg, rgba(8,10,12,0.82), rgba(6,20,16,0.82))", color: "#e6f6ef" }
-        : undefined;
+    const rootBg = darkMode ? "bg-gradient-to-b from-[#111317] to-[#083f2e]" : "bg-gradient-to-b from-[#fff6fb] via-[#fff0f6] to-[#fffafc]";
+    const mainBgStyle = darkMode ? { background: "linear-gradient(180deg, rgba(8,10,12,0.82), rgba(6,20,16,0.82))", color: "#e6f6ef" } : undefined;
     const textColor = darkMode ? "text-slate-200" : "text-slate-900";
 
+    const priorityStyle = (p: Priority) =>
+        p === "high" ? "bg-pink-500" : p === "medium" ? "bg-rose-300 text-rose-900" : "bg-emerald-400 text-emerald-900";
+
     return (
-        <div
-            style={{ fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}
-            className={`min-h-screen flex items-start justify-center py-12 px-4 ${rootBg}`}
-        >
+        <div style={{ fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }} className={`min-h-screen flex items-start justify-center py-12 px-4 ${rootBg}`}>
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');`}</style>
 
             <div className="w-full max-w-6xl">
@@ -280,12 +301,19 @@ export default function Home() {
                         </div>
                         <div>
                             <h1 className={`text-4xl font-bold ${textColor}`}>Tasks & Planner</h1>
-                            <p className={`text-sm mt-0.5 ${darkMode ? "text-slate-300" : "text-slate-600"}`}></p>
+                            <p className={`text-sm mt-0.5 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Pink & green theme, unified radii</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className={`text-sm ${darkMode ? "text-slate-300" : "text-slate-700"}`}>{todos.length} total</div>
+
+                        <div className="flex flex-col items-end">
+                            <div className={`text-sm font-medium ${darkMode ? "text-slate-200" : "text-slate-800"}`}>Level {level} • {xp} XP</div>
+                            <div className="w-40 h-2 bg-white/30 rounded-full mt-1 overflow-hidden" style={{ background: darkMode ? "rgba(255,255,255,0.06)" : undefined }}>
+                                <div style={{ width: `${progressPercent}%`, height: "100%", background: "linear-gradient(90deg,#ff8fa3,#34d399)" }} />
+                            </div>
+                        </div>
 
                         <button
                             onClick={() => setDarkMode((s) => !s)}
@@ -314,12 +342,8 @@ export default function Home() {
                     </div>
                 </header>
 
-                <main
-                    className={`${BORDER} shadow-xl p-6`}
-                    style={{ ...(mainBgStyle ?? {}), ...(darkMode ? { border: "1px solid rgba(255,255,255,0.04)" } : {}) }}
-                >
-                    {/* Task row (full width) */}
-                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end mb-4">
+                <main className={`${BORDER} shadow-xl p-6`} style={{ ...(mainBgStyle ?? {}), ...(darkMode ? { border: "1px solid rgba(255,255,255,0.04)" } : {}) }}>
+                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end mb-6">
                         <div className="md:col-span-8">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Task</label>
                             <input
@@ -330,14 +354,9 @@ export default function Home() {
                             />
                         </div>
 
-                        {/* controls row (under Task) */}
                         <div className="md:col-span-1">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Priority</label>
-                            <select
-                                value={priority}
-                                onChange={(e) => setPriority(e.target.value as Priority)}
-                                className={`w-full px-3 py-2 border border-transparent ${BORDER} ${darkMode ? "bg-[#071318] text-slate-100" : "bg-white text-slate-800"}`}
-                            >
+                            <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className={`w-full px-3 py-2 border border-transparent ${BORDER} ${darkMode ? "bg-[#071318] text-slate-100" : "bg-white text-slate-800"}`}>
                                 <option value="high">High</option>
                                 <option value="medium">Medium</option>
                                 <option value="low">Low</option>
@@ -346,11 +365,7 @@ export default function Home() {
 
                         <div className="md:col-span-2">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Category</label>
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className={`w-full px-3 py-2 border border-transparent ${BORDER} ${darkMode ? "bg-[#071318] text-slate-100" : "bg-white text-slate-800"}`}
-                            >
+                            <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full px-3 py-2 border border-transparent ${BORDER} ${darkMode ? "bg-[#071318] text-slate-100" : "bg-white text-slate-800"}`}>
                                 {CATEGORIES.map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.label}
@@ -371,72 +386,52 @@ export default function Home() {
                                     type="date"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
-                                    className={`w-full pl-10 pr-3 py-2 border-2 border-transparent ${BORDER} focus:outline-none min-w-0`}
+                                    className={`w-full pl-10 pr-3 py-2 border-2 border-transparent ${BORDER} focus:outline-none min-w-0 ${darkMode ? "bg-[#061014] text-slate-100" : ""}`}
                                     style={{
                                         background: darkMode ? "linear-gradient(90deg, rgba(255,142,163,0.03), rgba(74,222,128,0.02))" : "linear-gradient(90deg, rgba(255,142,163,0.06), rgba(167,243,208,0.04))",
                                         borderImageSlice: 1,
                                         borderImageSource: "linear-gradient(90deg, #ff8fa3, #4ade80)",
-                                        color: darkMode ? "#e6f6ef" : undefined,
                                     }}
                                 />
                             </div>
-                           
+
+                            {date ? (
+                                <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffd7df,#dfffe8)" }}>
+                                    <span className="text-pink-600">📅</span>
+                                    <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{formatDisplayDate(date)}</span>
+                                </div>
+                            ) : (
+                                <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}></div>
+                            )}
                         </div>
 
                         <div className="md:col-span-2 min-w-0">
                             <label className={`block text-xs font-medium mb-1 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Time</label>
 
-                            <TimeInput
-                                value={time}
-                                onChange={(v) => {
-                                    const n = normalizeTime(v);
-                                    if (n) setTime(n);
-                                    else setTime(v);
-                                }}
-                            />
+                            <TimeInput value={time} onChange={(v) => { const n = normalizeTime(v); if (n) setTime(n); else setTime(v); }} dark={darkMode} />
 
-                 
+                            {time ? (
+                                <div className={`${BORDER} mt-2 inline-flex items-center gap-2 px-3 py-1 text-xs font-medium`} style={{ background: darkMode ? "#072a20" : "linear-gradient(90deg,#ffeef2,#e8fff0)" }}>
+                                    <span className="text-pink-600">⏰</span>
+                                    <span className={darkMode ? "text-slate-200" : "text-slate-700"}>{time}</span>
+                                </div>
+                            ) : (
+                                <div className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Enter time or choose</div>
+                            )}
                         </div>
 
-                        {/* action row */}
-                        <div className="md:col-span-8 flex items-center gap-3 mt-2">
+                        <div className="md:col-span-8 flex items-center gap-3">
                             <div className="flex items-center gap-2">
                                 <label className={`text-xs font-medium ${darkMode ? "text-slate-300" : "text-slate-600"}`}>Color</label>
-                                <input
-                                    type="color"
-                                    value={color}
-                                    onChange={(e) => setColor(e.target.value)}
-                                    className={`${BORDER}`}
-                                    aria-label="Task color"
-                                />
+                                <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className={`${BORDER}`} aria-label="Task color" />
                             </div>
 
                             <div className="ml-auto flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setText("");
-                                        setPriority("medium");
-                                        setDate("");
-                                        setTime("");
-                                        setColor("#ff8fa3");
-                                        setCategory("inbox");
-                                    }}
-                                    className={`px-4 py-2 text-sm ${BORDER}`}
-                                    style={{
-                                        border: "1px solid rgba(0,0,0,0.04)",
-                                        background: darkMode ? "#071318" : "transparent",
-                                        color: darkMode ? "#e6f6ef" : "#111827",
-                                    }}
-                                >
+                                <button type="button" onClick={() => { setText(""); setPriority("medium"); setDate(""); setTime(""); setColor("#ff8fa3"); setCategory("inbox"); }} className={`px-4 py-2 text-sm ${BORDER}`} style={{ border: "1px solid rgba(0,0,0,0.04)", background: darkMode ? "#071318" : "transparent", color: darkMode ? "#e6f6ef" : "#111827" }}>
                                     Reset
                                 </button>
 
-                                <button
-                                    type="submit"
-                                    className={`px-4 py-2 text-white ${BORDER} shadow-md flex items-center gap-2`}
-                                    style={{ background: "linear-gradient(90deg,#ff3b7a,#34d399)" }}
-                                >
+                                <button type="submit" className={`px-4 py-2 text-white ${BORDER} shadow-md flex items-center gap-2`} style={{ background: "linear-gradient(90deg,#ff3b7a,#34d399)" }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                     </svg>
@@ -450,15 +445,7 @@ export default function Home() {
                         {CATEGORIES.map((cat) => {
                             const items = grouped.get(cat.id) ?? [];
                             return (
-                                <div
-                                    key={cat.id}
-                                    className={`${BORDER} p-4 shadow-md border`}
-                                    style={{
-                                        minHeight: 140,
-                                        background: darkMode ? "linear-gradient(180deg,#071318,#051816)" : "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,245,247,0.9))",
-                                        borderColor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(255,182,193,0.12)",
-                                    }}
-                                >
+                                <div key={cat.id} className={`${BORDER} p-4 shadow-md border`} style={{ minHeight: 140, background: darkMode ? "linear-gradient(180deg,#071318,#051816)" : "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,245,247,0.9))", borderColor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(255,182,193,0.12)" }}>
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
                                             <div className={`${BORDER} w-10 h-10 bg-white/6 flex items-center justify-center shadow-inner`} style={{ border: "1px solid rgba(255,255,255,0.03)" }}>
@@ -471,13 +458,7 @@ export default function Home() {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                className={`text-xs px-2 py-1 ${BORDER}`}
-                                                style={{
-                                                    background: darkMode ? "#052b1f" : "#ecfdf5",
-                                                    color: darkMode ? "#5eead4" : "#065f46",
-                                                }}
-                                            >
+                                            <button className={`text-xs px-2 py-1 ${BORDER}`} style={{ background: darkMode ? "#052b1f" : "#ecfdf5", color: darkMode ? "#5eead4" : "#065f46" }}>
                                                 New
                                             </button>
                                         </div>
@@ -486,15 +467,7 @@ export default function Home() {
                                     <ul className="space-y-3">
                                         {items.length === 0 && <li className={`text-xs ${darkMode ? "text-slate-400" : "text-slate-400"}`}>Empty</li>}
                                         {items.map((todo) => (
-                                            <li
-                                                key={todo.id}
-                                                className={`${BORDER} flex items-start gap-3 p-3`}
-                                                style={{
-                                                    borderLeft: `5px solid ${todo.color ?? "#ff8fa3"}`,
-                                                    background: darkMode ? "#041316" : "#fff",
-                                                    boxShadow: darkMode ? "0 2px 8px rgba(0,0,0,0.45)" : "0 1px 6px rgba(15,23,42,0.06)",
-                                                }}
-                                            >
+                                            <li key={todo.id} className={`${BORDER} flex items-start gap-3 p-3`} style={{ borderLeft: `5px solid ${todo.color ?? "#ff8fa3"}`, background: darkMode ? "#041316" : "#fff", boxShadow: darkMode ? "0 2px 8px rgba(0,0,0,0.45)" : "0 1px 6px rgba(15,23,42,0.06)" }}>
                                                 <input type="checkbox" checked={todo.done} onChange={() => toggleDone(todo.id)} className="mt-1 h-4 w-4" />
                                                 <div className="flex-1">
                                                     <div className="flex items-center justify-between gap-3">
@@ -517,9 +490,7 @@ export default function Home() {
                         })}
                     </section>
 
-                    <footer className={`mt-8 text-center text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-                        Made by Nikol
-                    </footer>
+                    <footer className={`mt-8 text-center text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Made by Nikol</footer>
                 </main>
             </div>
         </div>
