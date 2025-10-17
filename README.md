@@ -40,3 +40,6 @@ npm install
 
 # Run the development server
 npm run dev
+
+<img width="1919" height="879" alt="image" src="https://github.com/user-attachments/assets/8239f8f6-bcfd-4864-886c-f24898408e53" />
+
