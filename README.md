@@ -1,4 +1,8 @@
+## Screenshots
+
 ![Home Page Screenshot](https://raw.githubusercontent.com/NikolVoronina/todo-app-next/main/public/screenshots/screenshot-1.png)
+![Home Page Screenshot](https://raw.githubusercontent.com/NikolVoronina/todo-app-next/main/public/screenshots/screenshot-2.png)
+
 # To-Do App — Next.js + TypeScript
 
 A modern, responsive task management application built with **Next.js**, **TypeScript**, and **Tailwind CSS**.  
