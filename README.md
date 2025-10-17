@@ -53,4 +53,4 @@ npm install
 # Start the development server
 npm run dev
 
-<p align="center"> <img src="./public/screenshots/screeenshot-1" alt="Home Page Screenshot" width="800"> </p>
+<p align="center"> <img src="./public/screenshots/screenshot-1.png alt="Home Page Screenshot" width="800"> </p>
