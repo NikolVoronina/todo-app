@@ -14,14 +14,14 @@ The main goal was to build a clean and functional task management app with effic
 
 ## Features
 
-- Add, edit, and delete tasks
-- Categorize tasks (Inbox, Work, Home, Personal, Shopping, etc.)
-- Set task priority (Low, Medium, High)
-- Assign dates and times to tasks
-- Customize task colors
-- Data persistence using Local Storage
-- Responsive design for all screen sizes
-- Minimal and intuitive UI built with Tailwind CSS
+- Add, edit, and delete tasks  
+- Categorize tasks (Inbox, Work, Home, Personal, Shopping, etc.)  
+- Set task priority (Low, Medium, High)  
+- Assign dates and times to tasks  
+- Customize task colors  
+- Data persistence using Local Storage  
+- Responsive design for all screen sizes  
+- Minimal and intuitive UI built with Tailwind CSS  
 
 ---
 
@@ -52,5 +52,3 @@ npm install
 
 # Start the development server
 npm run dev
-
-<p align="center"> <img src="./public/screenshots/screenshot-1.png alt="Home Page Screenshot" width="800"> </p>
