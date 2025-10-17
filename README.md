@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📝 To-Do App — Next.js + TypeScript
 
-## Getting Started
+A modern, responsive To-Do application built with **Next.js**, **TypeScript**, and **Tailwind CSS**.  
+This project allows users to organize their tasks efficiently by **categories**, **priorities**, and **dates**, while keeping a clean and intuitive interface.
 
-First, run the development server:
+---
+
+## 🚀 Features
+
+- ✨ **Task Management:** Add, edit, and delete tasks easily  
+- 🎨 **Category System:** Organize tasks by category (Work 💼, Home 🏠, Personal 🧑‍🎤, Shopping 🛒, etc.)  
+- 🔥 **Priority Levels:** Low, medium, and high priority indicators  
+- ⏰ **Scheduling:** Set date and time for each task  
+- 🌈 **Color Customization:** Each task can have its own color  
+- 📦 **Local Storage Support:** Tasks are saved even after page reload  
+- 📱 **Responsive Design:** Fully optimized for mobile and desktop devices  
+
+---
+
+## 🧠 Technologies Used
+
+- [Next.js](https://nextjs.org/) — React framework for production  
+- [TypeScript](https://www.typescriptlang.org/) — Type safety and better developer experience  
+- [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework for fast styling  
+- [React Hooks](https://react.dev/reference/react) — Managing component state and effects  
+
+---
+
+## 🛠 Installation & Setup
 
 ```bash
+# Clone the repository
+git clone https://github.com/NikolVoronina/todo-app-next.git
+
+# Navigate into the project folder
+cd todo-app-next
+
+# Install dependencies
+npm install
+
+# Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
