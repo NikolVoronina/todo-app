@@ -1,32 +1,44 @@
-# 📝 To-Do App — Next.js + TypeScript
+# To-Do App — Next.js + TypeScript
 
-A modern, responsive To-Do application built with **Next.js**, **TypeScript**, and **Tailwind CSS**.  
-This project allows users to organize their tasks efficiently by **categories**, **priorities**, and **dates**, while keeping a clean and intuitive interface.
-
----
-
-## 🚀 Features
-
-- ✨ **Task Management:** Add, edit, and delete tasks easily  
-- 🎨 **Category System:** Organize tasks by category (Work 💼, Home 🏠, Personal 🧑‍🎤, Shopping 🛒, etc.)  
-- 🔥 **Priority Levels:** Low, medium, and high priority indicators  
-- ⏰ **Scheduling:** Set date and time for each task  
-- 🌈 **Color Customization:** Each task can have its own color  
-- 📦 **Local Storage Support:** Tasks are saved even after page reload  
-- 📱 **Responsive Design:** Fully optimized for mobile and desktop devices  
+A modern, responsive task management application built with **Next.js**, **TypeScript**, and **Tailwind CSS**.  
+The project allows users to create, categorize, and prioritize tasks with an intuitive and minimal user interface.
 
 ---
 
-## 🧠 Technologies Used
+## Overview
 
-- [Next.js](https://nextjs.org/) — React framework for production  
-- [TypeScript](https://www.typescriptlang.org/) — Type safety and better developer experience  
-- [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework for fast styling  
-- [React Hooks](https://react.dev/reference/react) — Managing component state and effects  
+This project was created to strengthen skills in **frontend development**, focusing on **Next.js**, **React**, and **UI/UX design principles**.  
+The main goal was to build a clean and functional task management app with efficient state handling and a smooth user experience.
 
 ---
 
-## 🛠 Installation & Setup
+## Features
+
+- Add, edit, and delete tasks
+- Categorize tasks (Inbox, Work, Home, Personal, Shopping, etc.)
+- Set task priority (Low, Medium, High)
+- Assign dates and times to tasks
+- Customize task colors
+- Data persistence using Local Storage
+- Responsive design for all screen sizes
+- Minimal and intuitive UI built with Tailwind CSS
+
+---
+
+## Technologies Used
+
+| Technology | Purpose |
+|-------------|----------|
+| **Next.js** | React framework for production-ready web apps |
+| **TypeScript** | Provides type safety and code reliability |
+| **Tailwind CSS** | Utility-first CSS framework for rapid UI development |
+| **React Hooks** | Simplifies state and side effect management |
+
+---
+
+## Installation & Setup
+
+To run this project locally:
 
 ```bash
 # Clone the repository
@@ -38,8 +50,7 @@ cd todo-app-next
 # Install dependencies
 npm install
 
-# Run the development server
+# Start the development server
 npm run dev
 
-<img width="1919" height="879" alt="image" src="https://github.com/user-attachments/assets/8239f8f6-bcfd-4864-886c-f24898408e53" />
-
+<p align="center"> <img src="./public/screenshots/screeenshot-1" alt="Home Page Screenshot" width="800"> </p>
