@@ -52,3 +52,6 @@ npm install
 
 # Start the development server
 npm run dev
+
+
+![Home Page Screenshot](https://raw.githubusercontent.com/NikolVoronina/todo-app-next/main/public/screenshots/screenshot-1.png)
