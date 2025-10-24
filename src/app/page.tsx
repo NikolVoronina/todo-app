@@ -38,7 +38,7 @@ export default function Home() {
     // ui state / accessibility
     const [darkMode, setDarkMode] = useState<boolean>(false);
     const [xp, setXp] = useState<number>(0);
-    const [query, setQuery] = useState<string>(""); // new: search/filter
+    const [query] = useState<string>(""); // new: search/filter
     const [showOnlyUnfinished, setShowOnlyUnfinished] = useState(false);
 
     // client-mounted flag to avoid SSR/CSR content mismatch (hydation errors)
